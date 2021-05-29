@@ -13,7 +13,6 @@ import org.jetbrains.java.decompiler.util.DataInputFullStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.BitSet;
 import java.util.List;
 
 @SuppressWarnings("AssignmentToForLoopParameter")
@@ -21,16 +20,18 @@ public class ConstantPool implements NewClassNameBuilder {
   public static final int FIELD = 1;
   public static final int METHOD = 2;
 
-  private final List<PooledConstant> pool;
+  private final PooledConstant[] pool;
   private final PoolInterceptor interceptor;
 
   public ConstantPool(DataInputStream in) throws IOException {
     int size = in.readUnsignedShort();
-    pool = new ArrayList<>(size);
-    BitSet[] nextPass = {new BitSet(size), new BitSet(size), new BitSet(size)};
-
-    // first dummy constant
-    pool.add(null);
+    this.pool = new PooledConstant[size];
+    @SuppressWarnings("unchecked")
+    List<PooledConstant>[] passes = new List[]{
+      new ArrayList<>(size / 3),
+      new ArrayList<>(size / 5),
+      new ArrayList<>()
+    };
 
     // first pass: read the elements
     for (int i = 1; i < size; i++) {
@@ -38,26 +39,24 @@ public class ConstantPool implements NewClassNameBuilder {
 
       switch (tag) {
         case CodeConstants.CONSTANT_Utf8:
-          pool.add(new PrimitiveConstant(CodeConstants.CONSTANT_Utf8, in.readUTF()));
+          pool[i] = new PrimitiveConstant(CodeConstants.CONSTANT_Utf8, in.readUTF());
           break;
 
         case CodeConstants.CONSTANT_Integer:
-          pool.add(new PrimitiveConstant(CodeConstants.CONSTANT_Integer, Integer.valueOf(in.readInt())));
+          pool[i] = new PrimitiveConstant(CodeConstants.CONSTANT_Integer, Integer.valueOf(in.readInt()));
           break;
 
         case CodeConstants.CONSTANT_Float:
-          pool.add(new PrimitiveConstant(CodeConstants.CONSTANT_Float, in.readFloat()));
+          pool[i] = new PrimitiveConstant(CodeConstants.CONSTANT_Float, in.readFloat());
           break;
 
         case CodeConstants.CONSTANT_Long:
-          pool.add(new PrimitiveConstant(CodeConstants.CONSTANT_Long, in.readLong()));
-          pool.add(null);
+          pool[i] = new PrimitiveConstant(CodeConstants.CONSTANT_Long, in.readLong());
           i++;
           break;
 
         case CodeConstants.CONSTANT_Double:
-          pool.add(new PrimitiveConstant(CodeConstants.CONSTANT_Double, in.readDouble()));
-          pool.add(null);
+          pool[i] = new PrimitiveConstant(CodeConstants.CONSTANT_Double, in.readDouble());
           i++;
           break;
 
@@ -66,26 +65,30 @@ public class ConstantPool implements NewClassNameBuilder {
         case CodeConstants.CONSTANT_MethodType:
         case CodeConstants.CONSTANT_Module:
         case CodeConstants.CONSTANT_Package:
-          pool.add(new PrimitiveConstant(tag, in.readUnsignedShort()));
-          nextPass[0].set(i);
+          PrimitiveConstant pkg = new PrimitiveConstant(tag, in.readUnsignedShort());
+          pool[i] = pkg;
+          passes[0].add(pkg);
           break;
 
         case CodeConstants.CONSTANT_NameAndType:
-          pool.add(new LinkConstant(tag, in.readUnsignedShort(), in.readUnsignedShort()));
-          nextPass[0].set(i);
+          LinkConstant nameAndType = new LinkConstant(tag, in.readUnsignedShort(), in.readUnsignedShort());
+          pool[i] = nameAndType;
+          passes[0].add(nameAndType);
           break;
 
         case CodeConstants.CONSTANT_Fieldref:
         case CodeConstants.CONSTANT_Methodref:
         case CodeConstants.CONSTANT_InterfaceMethodref:
         case CodeConstants.CONSTANT_InvokeDynamic:
-          pool.add(new LinkConstant(tag, in.readUnsignedShort(), in.readUnsignedShort()));
-          nextPass[1].set(i);
+          LinkConstant invokeDynamic = new LinkConstant(tag, in.readUnsignedShort(), in.readUnsignedShort());
+          pool[i] = invokeDynamic;
+          passes[1].add(invokeDynamic);
           break;
 
         case CodeConstants.CONSTANT_MethodHandle:
-          pool.add(new LinkConstant(tag, in.readUnsignedByte(), in.readUnsignedShort()));
-          nextPass[2].set(i);
+          LinkConstant methodHandle = new LinkConstant(tag, in.readUnsignedByte(), in.readUnsignedShort());
+          pool[i] = methodHandle;
+          passes[2].add(methodHandle);
           break;
 
         default:
@@ -94,10 +97,9 @@ public class ConstantPool implements NewClassNameBuilder {
     }
 
     // resolving complex pool elements
-    for (BitSet pass : nextPass) {
-      int idx = 0;
-      while ((idx = pass.nextSetBit(idx + 1)) > 0) {
-        pool.get(idx).resolveConstant(this);
+    for (List<PooledConstant> pass : passes) {
+      for (PooledConstant constant : pass) {
+        constant.resolveConstant(this);
       }
     }
 
@@ -130,7 +132,7 @@ public class ConstantPool implements NewClassNameBuilder {
   }
 
   public PooledConstant getConstant(int index) {
-    return pool.get(index);
+    return pool[index];
   }
 
   public PrimitiveConstant getPrimitiveConstant(int index) {
