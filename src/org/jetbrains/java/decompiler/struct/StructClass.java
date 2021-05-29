@@ -4,6 +4,7 @@ package org.jetbrains.java.decompiler.struct;
 import org.jetbrains.java.decompiler.code.CodeConstants;
 import org.jetbrains.java.decompiler.main.DecompilerContext;
 import org.jetbrains.java.decompiler.main.extern.IFernflowerLogger;
+import org.jetbrains.java.decompiler.main.extern.IFernflowerLogger;
 import org.jetbrains.java.decompiler.main.extern.IFernflowerPreferences;
 import org.jetbrains.java.decompiler.struct.attr.StructGeneralAttribute;
 import org.jetbrains.java.decompiler.struct.attr.StructGenericSignatureAttribute;
@@ -64,33 +65,16 @@ public class StructClass extends StructMember {
     String qualifiedName = pool.getPrimitiveConstant(thisClassIdx).getString();
     PrimitiveConstant superClass = pool.getPrimitiveConstant(superClassIdx);
 
-    int length = in.readUnsignedShort();
-    int[] interfaces = new int[length];
-    String[] interfaceNames = new String[length];
-    for (int i = 0; i < length; i++) {
+    int interfaceCount = in.readUnsignedShort();
+    int[] interfaces = new int[interfaceCount];
+    String[] interfaceNames = new String[interfaceCount];
+    for (int i = 0; i < interfaceCount; i++) {
       interfaces[i] = in.readUnsignedShort();
       interfaceNames[i] = pool.getPrimitiveConstant(interfaces[i]).getString();
     }
 
-    length = in.readUnsignedShort();
-    VBStyleCollection<StructField, String>fields = new VBStyleCollection<>(length);
-    for (int i = 0; i < length; i++) {
-      StructField field = StructField.create(in, pool, qualifiedName);
-      fields.addWithKey(field, InterpreterUtil.makeUniqueKey(field.getName(), field.getDescriptor()));
-    }
-
-    length = in.readUnsignedShort();
-    VBStyleCollection<StructMethod, String>methods = new VBStyleCollection<>(length);
-    for (int i = 0; i < length; i++) {
-      StructMethod method = StructMethod.create(in, pool, qualifiedName, bytecodeVersion, own);
-      String key = InterpreterUtil.makeUniqueKey(method.getName(), method.getDescriptor());
-      if (methods.containsKey(key)) {
-        String fullName = qualifiedName + "." + method.getName() + method.getDescriptor();
-        DecompilerContext.getLogger().writeMessage("Duplicate method " + fullName, IFernflowerLogger.Severity.WARN);
-      }
-      methods.addWithKey(method, key);
-    }
-
+    VBStyleCollection<StructField, String> fields = readFields(in, pool, qualifiedName);
+    VBStyleCollection<StructMethod, String> methods = readMethods(in, own, bytecodeVersion, pool, qualifiedName);
     Map<String, StructGeneralAttribute> attributes = readAttributes(in, pool);
 
     GenericClassDescriptor signature = null;
@@ -105,6 +89,31 @@ public class StructClass extends StructMember {
       accessFlags, attributes, qualifiedName, superClass, own, loader, minorVersion, majorVersion, interfaces, interfaceNames, fields, methods, signature);
     if (loader == null) cl.pool = pool;
     return cl;
+  }
+
+  private static VBStyleCollection<StructField, String> readFields(DataInputFullStream in, ConstantPool pool, String qualifiedName) throws IOException {
+    int fieldCount = in.readUnsignedShort();
+    VBStyleCollection<StructField, String>fields = new VBStyleCollection<>(fieldCount);
+    for (int i = 0; i < fieldCount; i++) {
+      StructField field = StructField.create(in, pool, qualifiedName);
+      fields.addWithKey(field, InterpreterUtil.makeUniqueKey(field.getName(), field.getDescriptor()));
+    }
+    return fields;
+  }
+
+  private static VBStyleCollection<StructMethod, String> readMethods(DataInputFullStream in, boolean own, int bytecodeVersion, ConstantPool pool, String qualifiedName) throws IOException {
+    int methodCount = in.readUnsignedShort();
+    VBStyleCollection<StructMethod, String> methods = new VBStyleCollection<>(methodCount);
+    for (int i = 0; i < methodCount; i++) {
+      StructMethod method = StructMethod.create(in, pool, qualifiedName, bytecodeVersion, own);
+      String key = InterpreterUtil.makeUniqueKey(method.getName(), method.getDescriptor());
+      if (methods.containsKey(key)) {
+        String fullName = qualifiedName + "." + method.getName() + method.getDescriptor();
+        DecompilerContext.getLogger().writeMessage("Duplicate method " + fullName, IFernflowerLogger.Severity.WARN);
+      }
+      methods.addWithKey(method, key);
+    }
+    return methods;
   }
 
   public final String qualifiedName;

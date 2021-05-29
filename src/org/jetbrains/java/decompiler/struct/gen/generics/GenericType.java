@@ -40,99 +40,83 @@ public class GenericType extends VarType {
   }
 
   public static VarType parse(String signature, int wildcard) {
-    int type = 0;
     int arrayDim = 0;
-    String value = null;
+
+    while (arrayDim < signature.length() && signature.charAt(arrayDim) == '[') {
+      arrayDim++;
+    }
+
+    int index = arrayDim;
+    if (index < signature.length()) {
+      char c = signature.charAt(index);
+      if (c == 'T') {
+        String name = signature.substring(index + 1, signature.length() - 1);
+        return new GenericType(CodeConstants.TYPE_GENVAR, arrayDim, name, null, null, wildcard);
+      } else if (c == 'L') {
+        return parseGenericObjectType(signature, wildcard, arrayDim, index);
+      } else {
+        String primitive = signature.substring(index, index + 1);
+        return new VarType(VarType.getType(primitive.charAt(0)), arrayDim, primitive);
+      }
+    }
+    return null;
+  }
+
+  private static VarType parseGenericObjectType(String signature, int wildcard, int arrayDim, int index) {
+    signature = signature.substring(index + 1, signature.length() - 1);
+    String cl = getNextClassSignature(signature);
+
     List<VarType> params = null;
     VarType parent = null;
+    String value = null;
+    if (cl.length() == signature.length()) {
+      int argStart = cl.indexOf('<');
+      if (argStart >= 0) {
+        value = cl.substring(0, argStart);
+        params = parseArgumentsList(cl.substring(argStart + 1, cl.length() - 1));
+      } else {
+        value = cl;
+      }
+    } else {
+      StringBuilder name_buff = new StringBuilder();
+      while (signature.length() > 0) {
+        String name = cl;
+        String args = null;
 
-    int index = 0;
-    loop:
-    while (index < signature.length()) {
-      switch (signature.charAt(index)) {
-        case '[':
-          arrayDim++;
+        int argStart = cl.indexOf('<');
+        if (argStart >= 0) {
+          name = cl.substring(0, argStart);
+          args = cl.substring(argStart + 1, cl.length() - 1);
+        }
+
+        if (name_buff.length() > 0) {
+          name_buff.append('$');
+        }
+        name_buff.append(name);
+
+        value = name_buff.toString();
+        params = args == null ? null : parseArgumentsList(args);
+
+        if (cl.length() == signature.length()) {
           break;
-
-        case 'T':
-          type = CodeConstants.TYPE_GENVAR;
-          value = signature.substring(index + 1, signature.length() - 1);
-          break loop;
-
-        case 'L':
-          type = CodeConstants.TYPE_OBJECT;
-          signature = signature.substring(index + 1, signature.length() - 1);
-          String cl = getNextClassSignature(signature);
-
-          if (cl.length() == signature.length()) {
-            int argStart = cl.indexOf('<');
-            if (argStart >= 0) {
-              value = cl.substring(0, argStart);
-              params = parseArgumentsList(cl.substring(argStart + 1, cl.length() - 1));
-            }
-            else {
-              value = cl;
-            }
+        } else {
+          if (parent == null && params == null) {
+            parent = GenericType.parse("L" + value + ";");
+          } else {
+            parent = new GenericType(CodeConstants.TYPE_OBJECT, 0, value, parent, params, wildcard);
           }
-          else {
-            StringBuilder name_buff = new StringBuilder();
-            while (signature.length() > 0) {
-              String name = cl;
-              String args = null;
 
-              int argStart = cl.indexOf('<');
-              if (argStart >= 0) {
-                name = cl.substring(0, argStart);
-                args = cl.substring(argStart + 1, cl.length() - 1);
-              }
-
-              if (name_buff.length() > 0) {
-                name_buff.append('$');
-              }
-              name_buff.append(name);
-
-              value = name_buff.toString();
-              params = args == null ? null : parseArgumentsList(args);
-
-              if (cl.length() == signature.length()) {
-                break;
-              }
-              else {
-                if (parent == null && params == null) {
-                  parent = GenericType.parse("L" + value + ";");
-                }
-                else {
-                  parent = new GenericType(CodeConstants.TYPE_OBJECT, 0, value, parent, params, wildcard);
-                }
-
-                signature = signature.substring(cl.length() + 1);
-              }
-              cl = getNextClassSignature(signature);
-            }
-          }
-          break loop;
-
-        default:
-          value = signature.substring(index, index + 1);
-          type = VarType.getType(value.charAt(0));
+          signature = signature.substring(cl.length() + 1);
+        }
+        cl = getNextClassSignature(signature);
       }
-
-      index++;
     }
 
-    if (type == CodeConstants.TYPE_GENVAR) {
-      return new GenericType(type, arrayDim, value, null, null, wildcard);
-    }
-    else if (type == CodeConstants.TYPE_OBJECT) {
-      if (parent == null && params == null && wildcard == WILDCARD_NO) {
-        return new VarType(type, arrayDim, value);
-      }
-      else {
-        return new GenericType(type, arrayDim, value, parent, params, wildcard);
-      }
+    if (parent == null && params == null && wildcard == WILDCARD_NO) {
+      return new VarType(CodeConstants.TYPE_OBJECT, arrayDim, value);
     }
     else {
-      return new VarType(type, arrayDim, value);
+      return new GenericType(CodeConstants.TYPE_OBJECT, arrayDim, value, parent, params, wildcard);
     }
   }
 

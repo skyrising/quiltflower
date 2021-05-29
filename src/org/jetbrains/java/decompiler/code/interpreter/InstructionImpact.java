@@ -378,32 +378,7 @@ public final class InstructionImpact {
       case CodeConstants.opc_ldc:
       case CodeConstants.opc_ldc_w:
       case CodeConstants.opc_ldc2_w:
-        PooledConstant constant = pool.getConstant(instr.operand(0));
-        switch (constant.type) {
-          case CodeConstants.CONSTANT_Integer:
-            stack.push(new VarType(CodeConstants.TYPE_INT));
-            break;
-          case CodeConstants.CONSTANT_Float:
-            stack.push(new VarType(CodeConstants.TYPE_FLOAT));
-            break;
-          case CodeConstants.CONSTANT_Long:
-            stack.push(new VarType(CodeConstants.TYPE_LONG));
-            stack.push(new VarType(CodeConstants.TYPE_GROUP2EMPTY));
-            break;
-          case CodeConstants.CONSTANT_Double:
-            stack.push(new VarType(CodeConstants.TYPE_DOUBLE));
-            stack.push(new VarType(CodeConstants.TYPE_GROUP2EMPTY));
-            break;
-          case CodeConstants.CONSTANT_String:
-            stack.push(new VarType(CodeConstants.TYPE_OBJECT, 0, "java/lang/String"));
-            break;
-          case CodeConstants.CONSTANT_Class:
-            stack.push(new VarType(CodeConstants.TYPE_OBJECT, 0, "java/lang/Class"));
-            break;
-          case CodeConstants.CONSTANT_MethodHandle:
-            stack.push(new VarType(((LinkConstant)constant).descriptor));
-            break;
-        }
+        processLdc(stack, pool.getConstant(instr.operand(0)));
         break;
       case CodeConstants.opc_aload:
         var1 = data.getVariable(instr.operand(0));
@@ -461,19 +436,7 @@ public final class InstructionImpact {
         stack.pop();
       case CodeConstants.opc_invokestatic:
       case CodeConstants.opc_invokedynamic:
-        if (instr.opcode != CodeConstants.opc_invokedynamic || instr.bytecodeVersion >= CodeConstants.BYTECODE_JAVA_7) {
-          ck = pool.getLinkConstant(instr.operand(0));
-          MethodDescriptor md = MethodDescriptor.parseDescriptor(ck.descriptor);
-          for (int i = 0; i < md.params.length; i++) {
-            stack.pop(md.params[i].stackSize);
-          }
-          if (md.ret.type != CodeConstants.TYPE_VOID) {
-            stack.push(md.ret);
-            if (md.ret.stackSize == 2) {
-              stack.push(new VarType(CodeConstants.TYPE_GROUP2EMPTY));
-            }
-          }
-        }
+        processInvoke(instr, pool, stack);
         break;
       case CodeConstants.opc_new:
         cn = pool.getPrimitiveConstant(instr.operand(0));
@@ -507,6 +470,50 @@ public final class InstructionImpact {
         else {
           stack.push(new VarType(CodeConstants.TYPE_OBJECT, dimensions, cn.getString()));
         }
+    }
+  }
+
+  private static void processInvoke(Instruction instr, ConstantPool pool, ListStack<VarType> stack) {
+    if (instr.opcode != CodeConstants.opc_invokedynamic || instr.bytecodeVersion >= CodeConstants.BYTECODE_JAVA_7) {
+      LinkConstant ck = pool.getLinkConstant(instr.operand(0));
+      MethodDescriptor md = MethodDescriptor.parseDescriptor(ck.descriptor);
+      for (int i = 0; i < md.params.length; i++) {
+        stack.pop(md.params[i].stackSize);
+      }
+      if (md.ret.type != CodeConstants.TYPE_VOID) {
+        stack.push(md.ret);
+        if (md.ret.stackSize == 2) {
+          stack.push(new VarType(CodeConstants.TYPE_GROUP2EMPTY));
+        }
+      }
+    }
+  }
+
+  private static void processLdc(ListStack<VarType> stack, PooledConstant constant) {
+    switch (constant.type) {
+      case CodeConstants.CONSTANT_Integer:
+        stack.push(new VarType(CodeConstants.TYPE_INT));
+        break;
+      case CodeConstants.CONSTANT_Float:
+        stack.push(new VarType(CodeConstants.TYPE_FLOAT));
+        break;
+      case CodeConstants.CONSTANT_Long:
+        stack.push(new VarType(CodeConstants.TYPE_LONG));
+        stack.push(new VarType(CodeConstants.TYPE_GROUP2EMPTY));
+        break;
+      case CodeConstants.CONSTANT_Double:
+        stack.push(new VarType(CodeConstants.TYPE_DOUBLE));
+        stack.push(new VarType(CodeConstants.TYPE_GROUP2EMPTY));
+        break;
+      case CodeConstants.CONSTANT_String:
+        stack.push(new VarType(CodeConstants.TYPE_OBJECT, 0, "java/lang/String"));
+        break;
+      case CodeConstants.CONSTANT_Class:
+        stack.push(new VarType(CodeConstants.TYPE_OBJECT, 0, "java/lang/Class"));
+        break;
+      case CodeConstants.CONSTANT_MethodHandle:
+        stack.push(new VarType(((LinkConstant) constant).descriptor));
+        break;
     }
   }
 }
