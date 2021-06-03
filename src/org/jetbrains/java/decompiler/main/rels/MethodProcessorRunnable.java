@@ -2,6 +2,7 @@
 package org.jetbrains.java.decompiler.main.rels;
 
 import org.jetbrains.java.decompiler.code.CodeConstants;
+import org.jetbrains.java.decompiler.code.Instruction;
 import org.jetbrains.java.decompiler.code.InstructionSequence;
 import org.jetbrains.java.decompiler.code.cfg.ControlFlowGraph;
 import org.jetbrains.java.decompiler.main.DecompilerContext;
@@ -11,10 +12,7 @@ import org.jetbrains.java.decompiler.main.extern.IFernflowerPreferences;
 import org.jetbrains.java.decompiler.modules.code.DeadCodeHelper;
 import org.jetbrains.java.decompiler.modules.decompiler.*;
 import org.jetbrains.java.decompiler.modules.decompiler.deobfuscator.ExceptionDeobfuscator;
-import org.jetbrains.java.decompiler.modules.decompiler.exps.AssignmentExprent;
-import org.jetbrains.java.decompiler.modules.decompiler.exps.Exprent;
-import org.jetbrains.java.decompiler.modules.decompiler.exps.MonitorExprent;
-import org.jetbrains.java.decompiler.modules.decompiler.exps.VarExprent;
+import org.jetbrains.java.decompiler.modules.decompiler.exps.*;
 import org.jetbrains.java.decompiler.modules.decompiler.stats.RootStatement;
 import org.jetbrains.java.decompiler.modules.decompiler.stats.Statement;
 import org.jetbrains.java.decompiler.modules.decompiler.stats.SynchronizedStatement;
@@ -72,13 +70,83 @@ public class MethodProcessorRunnable implements Runnable {
     }
   }
 
+  private static boolean isSimpleMethod(StructMethod mt, InstructionSequence seq) {
+    if (!seq.getExceptionTable().getHandlers().isEmpty()) return false;
+    int length = seq.length();
+    if (length > 5) return false;
+    if (length < 3) return true;
+    if (length == 3) {
+      Instruction first = seq.getInstr(0);
+      Instruction second = seq.getInstr(1);
+      Instruction third = seq.getInstr(2);
+      if (first.opcode == CodeConstants.opc_aload && first.operand(0) == 0) {
+        // default constructor: super()
+        if (CodeConstants.INIT_NAME.equals(mt.getName()) && second.opcode == CodeConstants.opc_invokespecial && third.opcode == CodeConstants.opc_return) return true;
+        // getter: return this.<field>
+        if (second.opcode == CodeConstants.opc_getfield && third.group == CodeConstants.GROUP_RETURN) return true;
+      }
+    } else if (length == 4) {
+      Instruction first = seq.getInstr(0);
+      Instruction second = seq.getInstr(1);
+      Instruction third = seq.getInstr(2);
+      Instruction fourth = seq.getInstr(3);
+      if (first.opcode == CodeConstants.opc_aload && first.operand(0) == 0) {
+        // setter: this.<field> = <arg>
+        if (second.opcode >= CodeConstants.opc_iload
+          && second.opcode <= CodeConstants.opc_aload
+          && third.opcode == CodeConstants.opc_putfield
+          && fourth.opcode == CodeConstants.opc_return
+        ) return true;
+      }
+    } else {
+      Instruction first = seq.getInstr(0);
+      Instruction second = seq.getInstr(1);
+      Instruction third = seq.getInstr(2);
+      Instruction fourth = seq.getInstr(3);
+      Instruction fifth = seq.getInstr(4);
+      if (first.opcode == CodeConstants.opc_aload && first.operand(0) == 0) {
+        // setter: this.<field> = <arg>
+        if (second.opcode >= CodeConstants.opc_iload
+          && second.opcode <= CodeConstants.opc_aload
+          && third.opcode == CodeConstants.opc_putfield
+          && fourth.opcode == CodeConstants.opc_aload && fourth.operand(0) == 0
+          && fifth.opcode == CodeConstants.opc_areturn
+        ) return true;
+      }
+    }
+    return false;
+  }
+
+  private static RootStatement simpleMethodToJava(StructClass cl, StructMethod mt, MethodDescriptor md, VarProcessor varProc, ControlFlowGraph graph) {
+    DecompilerContext.getCounterContainer().setCounter(CounterContainer.VAR_COUNTER, mt.getLocalVariables());
+    RootStatement simple = DomHelper.parseGraph(graph, mt);
+    ExprProcessor proc = new ExprProcessor(md, varProc);
+    proc.processStatement(simple, cl);
+    StackVarsProcessor stackProc = new StackVarsProcessor();
+    stackProc.simplifyStackVars(simple, mt, cl);
+    varProc.setVarVersions(simple);
+    LabelHelper.identifyLabels(simple);
+    ExitHelper.removeRedundantReturns(simple);
+    varProc.setVarDefinitions(simple);
+    mt.releaseResources();
+    return simple;
+  }
+
   public static RootStatement codeToJava(StructClass cl, StructMethod mt, MethodDescriptor md, VarProcessor varProc) throws IOException {
     boolean isInitializer = CodeConstants.CLINIT_NAME.equals(mt.getName()); // for now static initializer only
 
     mt.expandData(cl);
+    //int mCount = methodCount.incrementAndGet();
     InstructionSequence seq = mt.getInstructionSequence();
     ControlFlowGraph graph = new ControlFlowGraph(seq);
+    if (!isInitializer && graph.getBlocks().size() == 1 && isSimpleMethod(mt, seq)) {
+      return simpleMethodToJava(cl, mt, md, varProc, graph);
+    }
 
+    return complexMethodToJava(cl, mt, md, varProc, isInitializer, graph);
+  }
+
+  private static RootStatement complexMethodToJava(StructClass cl, StructMethod mt, MethodDescriptor md, VarProcessor varProc, boolean isInitializer, ControlFlowGraph graph) {
     DeadCodeHelper.removeDeadBlocks(graph);
     graph.inlineJsr(cl, mt);
 
