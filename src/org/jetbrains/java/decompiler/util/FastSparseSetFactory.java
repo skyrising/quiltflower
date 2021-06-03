@@ -5,7 +5,7 @@ import java.util.*;
 
 public class FastSparseSetFactory<E> {
 
-  private final VBStyleCollection<int[], E> colValuesInternal;
+  private final VBStyleCollection<Long, E> colValuesInternal;
 
   private int lastBlock;
 
@@ -18,7 +18,7 @@ public class FastSparseSetFactory<E> {
     int mask = -1;
     int index = 0;
 
-    Collection<int[]> values = new ArrayList<>(set.size());
+    Collection<Long> values = new ArrayList<>(set.size());
     for (E ignored : set) {
 
       block = index / 32;
@@ -30,7 +30,7 @@ public class FastSparseSetFactory<E> {
         mask <<= 1;
       }
 
-      values.add(new int[]{block, mask});
+      values.add(combine(block, mask));
 
       index++;
     }
@@ -41,7 +41,19 @@ public class FastSparseSetFactory<E> {
     lastMask = mask;
   }
 
-  private int[] addElement(E element) {
+  static long combine(int block, int mask) {
+    return (long) block << 32 | ((long) mask) & 0xffffffffL;
+  }
+
+  static int getBlock(long pointer) {
+    return (int) (pointer >> 32);
+  }
+
+  static int getMask(long pointer) {
+    return (int) pointer;
+  }
+
+  private long addElement(E element) {
 
     if (lastMask == -1 || lastMask == 0x80000000) {
       lastMask = 1;
@@ -51,7 +63,7 @@ public class FastSparseSetFactory<E> {
       lastMask <<= 1;
     }
 
-    int[] pointer = new int[]{lastBlock, lastMask};
+    long pointer = combine(lastBlock, lastMask);
     colValuesInternal.putWithKey(pointer, element);
 
     return pointer;
@@ -65,7 +77,7 @@ public class FastSparseSetFactory<E> {
     return lastBlock;
   }
 
-  private VBStyleCollection<int[], E> getInternalValuesCollection() {
+  private VBStyleCollection<Long, E> getInternalValuesCollection() {
     return colValuesInternal;
   }
 
@@ -75,7 +87,7 @@ public class FastSparseSetFactory<E> {
 
     private final FastSparseSetFactory<E> factory;
 
-    private final VBStyleCollection<int[], E> colValuesInternal;
+    private final VBStyleCollection<Long, E> colValuesInternal;
 
     private int[] data;
     private int[] next;
@@ -121,32 +133,32 @@ public class FastSparseSetFactory<E> {
     }
 
     public void add(E element) {
-      int[] index = colValuesInternal.getWithKey(element);
+      Long index = colValuesInternal.getWithKey(element);
 
       if (index == null) {
         index = factory.addElement(element);
       }
 
-      int block = index[0];
+      int block = getBlock(index);
       if (block >= data.length) {
         ensureCapacity(block);
       }
 
-      data[block] |= index[1];
+      data[block] |= getMask(index);
 
       changeNext(next, block, next[block], block);
     }
 
     public void remove(E element) {
-      int[] index = colValuesInternal.getWithKey(element);
+      Long index = colValuesInternal.getWithKey(element);
 
       if (index == null) {
         index = factory.addElement(element);
       }
 
-      int block = index[0];
+      int block = getBlock(index);
       if (block < data.length) {
-        data[block] &= ~index[1];
+        data[block] &= ~getMask(index);
 
         if (data[block] == 0) {
           changeNext(next, block, block, next[block]);
@@ -155,13 +167,14 @@ public class FastSparseSetFactory<E> {
     }
 
     public boolean contains(E element) {
-      int[] index = colValuesInternal.getWithKey(element);
+      Long index = colValuesInternal.getWithKey(element);
 
       if (index == null) {
         index = factory.addElement(element);
       }
 
-      return index[0] < data.length && ((data[index[0]] & index[1]) != 0);
+      int block = getBlock(index);
+      return block < data.length && ((data[block] & getMask(index)) != 0);
     }
 
     private void setNext() {
@@ -323,9 +336,9 @@ public class FastSparseSetFactory<E> {
       }
 
       for (int i = size - 1; i >= 0; i--) {
-        int[] index = colValuesInternal.get(i);
+        long index = colValuesInternal.get(i);
 
-        if ((intdata[index[0]] & index[1]) != 0) {
+        if ((intdata[getBlock(index)] & getMask(index)) != 0) {
           set.add(colValuesInternal.getKey(i));
         }
       }
@@ -352,7 +365,7 @@ public class FastSparseSetFactory<E> {
 
   public static final class FastSparseSetIterator<E> implements Iterator<E> {
 
-    private final VBStyleCollection<int[], E> colValuesInternal;
+    private final VBStyleCollection<Long, E> colValuesInternal;
     private final int[] data;
     private final int[] next;
     private final int size;
@@ -422,8 +435,8 @@ public class FastSparseSetFactory<E> {
 
     @Override
     public void remove() {
-      int[] index = colValuesInternal.get(pointer);
-      data[index[0]] &= ~index[1];
+      long index = colValuesInternal.get(pointer);
+      data[getBlock(index)] &= ~getMask(index);
     }
   }
 }
