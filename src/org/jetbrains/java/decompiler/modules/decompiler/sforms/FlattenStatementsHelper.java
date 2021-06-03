@@ -452,9 +452,9 @@ public class FlattenStatementsHelper {
     for (int i = 0; i < 2; i++) {
       for (Entry<String, List<String[]>> ent : (i == 0 ? mapShortRangeFinallyPathIds : mapLongRangeFinallyPathIds).entrySet()) {
 
-        List<FinallyPathWrapper> newLst = new ArrayList<>();
-
         List<String[]> lst = ent.getValue();
+        List<FinallyPathWrapper> newLst = new ArrayList<>(lst.size());
+
         for (String[] arr : lst) {
 
           boolean isContinueEdge = arr[i == 0 ? 4 : 3] != null;

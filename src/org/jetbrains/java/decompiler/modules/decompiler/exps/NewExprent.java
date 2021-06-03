@@ -279,18 +279,21 @@ public class NewExprent extends Exprent {
 
   @Override
   public List<Exprent> getAllExprents() {
-    List<Exprent> lst = new ArrayList<>();
+    ArrayList<Exprent> lst = new ArrayList<>();
 
     if (newType.arrayDim != 0) {
+      lst.ensureCapacity(lstDims.size() + lstArrayElements.size());
       lst.addAll(lstDims);
       lst.addAll(lstArrayElements);
     }
     else if (constructor != null) {
       Exprent constructor = this.constructor.getInstance();
+      List<Exprent> params = this.constructor.getLstParameters();
+      lst.ensureCapacity(params.size() + (constructor == null ? 0 : 1));
       if (constructor != null) { // should be true only for a lambda expression with a virtual content method
         lst.add(constructor);
       }
-      lst.addAll(this.constructor.getLstParameters());
+      lst.addAll(params);
     }
 
     return lst;

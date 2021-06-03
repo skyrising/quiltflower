@@ -80,7 +80,7 @@ public class AssignmentExprent extends Exprent {
 
   @Override
   public List<Exprent> getAllExprents() {
-    List<Exprent> lst = new ArrayList<>();
+    List<Exprent> lst = new ArrayList<>(2);
     lst.add(left);
     lst.add(right);
     return lst;

@@ -97,7 +97,7 @@ public class IfExprent extends Exprent {
 
   @Override
   public List<Exprent> getAllExprents() {
-    List<Exprent> lst = new ArrayList<>();
+    List<Exprent> lst = new ArrayList<>(1);
     lst.add(condition);
     return lst;
   }

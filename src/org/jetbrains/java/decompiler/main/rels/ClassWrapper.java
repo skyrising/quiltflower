@@ -27,10 +27,11 @@ public class ClassWrapper {
   private final Set<String> hiddenMembers = new HashSet<>();
   private final VBStyleCollection<Exprent, String> staticFieldInitializers = new VBStyleCollection<>();
   private final VBStyleCollection<Exprent, String> dynamicFieldInitializers = new VBStyleCollection<>();
-  private final VBStyleCollection<MethodWrapper, String> methods = new VBStyleCollection<>();
+  private final VBStyleCollection<MethodWrapper, String> methods;
 
   public ClassWrapper(StructClass classStruct) {
     this.classStruct = classStruct;
+    this.methods = new VBStyleCollection<>(classStruct.getMethods().size());
   }
 
   public void init() {

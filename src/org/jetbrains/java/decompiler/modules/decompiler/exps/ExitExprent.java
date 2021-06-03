@@ -60,7 +60,7 @@ public class ExitExprent extends Exprent {
 
   @Override
   public List<Exprent> getAllExprents() {
-    List<Exprent> lst = new ArrayList<>();
+    List<Exprent> lst = new ArrayList<>(value == null ? 0 : 1);
     if (value != null) {
       lst.add(value);
     }

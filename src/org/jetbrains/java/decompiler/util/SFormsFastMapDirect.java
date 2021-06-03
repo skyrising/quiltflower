@@ -37,15 +37,8 @@ public class SFormsFastMapDirect {
       FastSparseSet<Integer>[] arr = map.elements[i];
       int[] arrnext = map.next[i];
 
-      int length = arr.length;
-      @SuppressWarnings("unchecked") FastSparseSet<Integer>[] arrnew = new FastSparseSet[length];
-      int[] arrnextnew = new int[length];
-
-      System.arraycopy(arr, 0, arrnew, 0, length);
-      System.arraycopy(arrnext, 0, arrnextnew, 0, length);
-
-      elements[i] = arrnew;
-      next[i] = arrnextnew;
+      elements[i] = Arrays.copyOf(arr, arr.length);
+      next[i] = Arrays.copyOf(arrnext, arrnext.length);
 
       size = map.size;
     }
@@ -67,10 +60,9 @@ public class SFormsFastMapDirect {
         int[] arrnext = next[i];
 
         @SuppressWarnings("unchecked") FastSparseSet<Integer>[] arrnew = new FastSparseSet[length];
-        int[] arrnextnew = Arrays.copyOf(arrnext, length);
 
         mapelements[i] = arrnew;
-        mapnext[i] = arrnextnew;
+        mapnext[i] = Arrays.copyOf(arrnext, length);
 
         int pointer = 0;
         do {
@@ -334,7 +326,7 @@ public class SFormsFastMapDirect {
   }
 
   public List<Entry<Integer, FastSparseSet<Integer>>> entryList() {
-    List<Entry<Integer, FastSparseSet<Integer>>> list = new ArrayList<>();
+    List<Entry<Integer, FastSparseSet<Integer>>> list = new ArrayList<>(elements[0].length + elements[1].length + elements[2].length);
 
     for (int i = 2; i >= 0; i--) {
       int ikey = 0;

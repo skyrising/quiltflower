@@ -111,9 +111,11 @@ public class StructMethod extends StructMember {
 
   @SuppressWarnings("AssignmentToForLoopParameter")
   private InstructionSequence parseBytecode(DataInputFullStream in, ConstantPool pool) throws IOException {
-    VBStyleCollection<Instruction, Integer> instructions = new VBStyleCollection<>();
-
     int length = in.readInt();
+    // 86% of methods have #insn < 0.75 * length
+    // small methods are outliers for that rule, with 10 as minimum size 99% never resize
+    VBStyleCollection<Instruction, Integer> instructions = new VBStyleCollection<>(Math.max(10, length * 3 / 4));
+
     for (int i = 0; i < length; ) {
       int offset = i;
 

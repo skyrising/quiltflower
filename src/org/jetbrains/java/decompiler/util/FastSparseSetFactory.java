@@ -5,19 +5,21 @@ import java.util.*;
 
 public class FastSparseSetFactory<E> {
 
-  private final VBStyleCollection<int[], E> colValuesInternal = new VBStyleCollection<>();
+  private final VBStyleCollection<int[], E> colValuesInternal;
 
   private int lastBlock;
 
   private int lastMask;
 
   public FastSparseSetFactory(Collection<? extends E> set) {
+    this.colValuesInternal = new VBStyleCollection<>(set.size());
 
     int block = -1;
     int mask = -1;
     int index = 0;
 
-    for (E element : set) {
+    Collection<int[]> values = new ArrayList<>(set.size());
+    for (E ignored : set) {
 
       block = index / 32;
 
@@ -28,10 +30,12 @@ public class FastSparseSetFactory<E> {
         mask <<= 1;
       }
 
-      colValuesInternal.putWithKey(new int[]{block, mask}, element);
+      values.add(new int[]{block, mask});
 
       index++;
     }
+
+    colValuesInternal.addAllWithKey(values, (Collection<E>) set);
 
     lastBlock = block;
     lastMask = mask;
@@ -94,12 +98,9 @@ public class FastSparseSetFactory<E> {
     }
 
     public FastSparseSet<E> getCopy() {
-      int[] newData = new int[this.data.length];
-      int[] newNext = new int[this.next.length];
-      System.arraycopy(this.data, 0, newData, 0, newData.length);
-      System.arraycopy(this.next, 0, newNext, 0, newNext.length);
-
-      return new FastSparseSet<>(factory, newData, newNext);
+      return new FastSparseSet<>(factory,
+        Arrays.copyOf(this.data, this.data.length),
+        Arrays.copyOf(this.next, this.next.length));
     }
 
     private int[] ensureCapacity(int index) {

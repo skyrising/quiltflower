@@ -18,7 +18,8 @@ public class VBStyleCollection<E, K> extends ArrayList<E> {
   public VBStyleCollection(int initialCapacity) {
     super(initialCapacity);
     lstKeys = new ArrayList<>(initialCapacity);
-    map = new HashMap<>(initialCapacity);
+    // default load factor is 0.75, so add a bit more than a third
+    map = new HashMap<>(initialCapacity + initialCapacity / 3 + 1);
   }
 
   @Override
