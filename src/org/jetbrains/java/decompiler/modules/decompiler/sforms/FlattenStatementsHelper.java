@@ -12,7 +12,7 @@ import java.util.Map.Entry;
 public class FlattenStatementsHelper {
 
   // statement.id, node.id(direct), node.id(continue)
-  private final Map<Integer, String[]> mapDestinationNodes = new HashMap<>();
+  private final Map<Integer, DestNodePair> mapDestinationNodes = new HashMap<>();
 
   // node.id(source), statement.id(destination), edge type
   private final List<Edge> listEdges = new ArrayList<>();
@@ -43,11 +43,11 @@ public class FlattenStatementsHelper {
     DirectNode node = new DirectNode(DirectNode.NODE_DIRECT, dummyexit, dummyexit.id.toString());
     node.exprents = new ArrayList<>();
     graph.nodes.addWithKey(node, node.id);
-    mapDestinationNodes.put(dummyexit.id, new String[]{node.id, null});
+    mapDestinationNodes.put(dummyexit.id, new DestNodePair(node, null));
 
     setEdges();
 
-    graph.first = graph.nodes.getWithKey(mapDestinationNodes.get(root.id)[0]);
+    graph.first = mapDestinationNodes.get(root.id).getDirect();
     graph.sortReversePostOrder();
 
     return graph;
@@ -75,7 +75,7 @@ public class FlattenStatementsHelper {
       node.exprents = stat.getExprents();
     }
     graph.nodes.putWithKey(node, node.id);
-    mapDestinationNodes.put(stat.id, new String[]{node.id, null});
+    mapDestinationNodes.put(stat.id, new DestNodePair(node, null));
 
     lstSuccEdges.addAll(stat.getSuccessorEdges(Statement.STATEDGE_DIRECT_ALL));
     DirectNode sourcenode = node;
@@ -87,7 +87,7 @@ public class FlattenStatementsHelper {
       tail.exprents = tailExprentList;
       graph.nodes.putWithKey(tail, tail.id);
 
-      mapDestinationNodes.put(-stat.id, new String[]{tail.id, null});
+      mapDestinationNodes.put(-stat.id, new DestNodePair(tail, null));
       listEdges.add(new Edge(node.id, -stat.id, StatEdge.TYPE_REGULAR));
 
       sourcenode = tail;
@@ -111,7 +111,7 @@ public class FlattenStatementsHelper {
       }
     }
 
-    mapDestinationNodes.put(stat.id, new String[]{firstnd.id, null});
+    mapDestinationNodes.put(stat.id, new DestNodePair(firstnd, null));
     graph.nodes.putWithKey(firstnd, firstnd.id);
 
     LinkedList<StatementStackEntry> lst = new LinkedList<>();
@@ -144,13 +144,13 @@ public class FlattenStatementsHelper {
       return null;
     }
 
-    DirectNode nd = graph.nodes.getWithKey(mapDestinationNodes.get(stat.getFirst().id)[0]);
+    DirectNode nd = mapDestinationNodes.get(stat.getFirst().id).getDirect();
 
     DoStatement dostat = (DoStatement) stat;
     int looptype = dostat.getLooptype();
 
     if (looptype == DoStatement.LOOP_DO) {
-      mapDestinationNodes.put(stat.id, new String[]{nd.id, nd.id});
+      mapDestinationNodes.put(stat.id, new DestNodePair(nd, nd));
       return null;
     }
 
@@ -166,9 +166,9 @@ public class FlattenStatementsHelper {
         listEdges.add(new Edge(node.id, stat.getFirst().id, StatEdge.TYPE_REGULAR));
 
         if (looptype == DoStatement.LOOP_WHILE) {
-          mapDestinationNodes.put(stat.id, new String[]{node.id, node.id});
+          mapDestinationNodes.put(stat.id, new DestNodePair(node, node));
         } else {
-          mapDestinationNodes.put(stat.id, new String[]{nd.id, node.id});
+          mapDestinationNodes.put(stat.id, new DestNodePair(nd, node));
 
           boolean found = false;
           for (Edge edge : listEdges) {
@@ -201,8 +201,8 @@ public class FlattenStatementsHelper {
         nodeinc.exprents = dostat.getIncExprentList();
         graph.nodes.putWithKey(nodeinc, nodeinc.id);
 
-        mapDestinationNodes.put(stat.id, new String[]{nodeinit.id, nodeinc.id});
-        mapDestinationNodes.put(-stat.id, new String[]{nodecond.id, null});
+        mapDestinationNodes.put(stat.id, new DestNodePair(nodeinit, nodeinc));
+        mapDestinationNodes.put(-stat.id, new DestNodePair(nodecond, null));
 
         listEdges.add(new Edge(nodecond.id, stat.getFirst().id, StatEdge.TYPE_REGULAR));
         listEdges.add(new Edge(nodeinit.id, -stat.id, StatEdge.TYPE_REGULAR));
@@ -255,8 +255,8 @@ public class FlattenStatementsHelper {
         return null;
       }
 
-      DirectNode node = graph.nodes.getWithKey(mapDestinationNodes.get(stat.getFirst().id)[0]);
-      mapDestinationNodes.put(stat.id, new String[]{node.id, null});
+      DirectNode node = mapDestinationNodes.get(stat.getFirst().id).getDirect();
+      mapDestinationNodes.put(stat.id, new DestNodePair(node, null));
 
       if (stat instanceof IfStatement && ((IfStatement) stat).iftype == IfStatement.IFTYPE_IF && !stat.getAllSuccessorEdges().isEmpty()) {
         lstSuccEdges.add(stat.getSuccessorEdges(Statement.STATEDGE_DIRECT_ALL).get(0));  // exactly one edge
@@ -448,7 +448,8 @@ public class FlattenStatementsHelper {
 
       DirectNode source = graph.nodes.getWithKey(sourceid);
 
-      DirectNode dest = graph.nodes.getWithKey(mapDestinationNodes.get(statid)[edge.edgetype == StatEdge.TYPE_CONTINUE ? 1 : 0]);
+      DestNodePair destPair = mapDestinationNodes.get(statid);
+      DirectNode dest = edge.edgetype == StatEdge.TYPE_CONTINUE ? destPair.getContinue() : destPair.getDirect();
 
       if (!source.succs.contains(dest)) {
         source.succs.add(dest);
@@ -473,8 +474,9 @@ public class FlattenStatementsHelper {
 
           boolean isContinueEdge = arr[i == 0 ? 4 : 3] != null;
 
-          DirectNode dest = graph.nodes.getWithKey(mapDestinationNodes.get(Integer.parseInt(arr[1]))[isContinueEdge ? 1 : 0]);
-          DirectNode enter = graph.nodes.getWithKey(mapDestinationNodes.get(Integer.parseInt(arr[2]))[0]);
+          DestNodePair destPair = mapDestinationNodes.get(Integer.parseInt(arr[1]));
+          DirectNode dest = isContinueEdge ? destPair.getContinue() : destPair.getDirect();
+          DirectNode enter = mapDestinationNodes.get(Integer.parseInt(arr[2])).getDirect();
 
           newLst.add(new FinallyPathWrapper(arr[0], dest.id, enter.id));
 
@@ -492,8 +494,8 @@ public class FlattenStatementsHelper {
     }
   }
 
-  public Map<Integer, String[]> getMapDestinationNodes() {
-    return mapDestinationNodes;
+  public DirectNode getDirectDestinationNode(Integer id) {
+    return mapDestinationNodes.get(id).getDirect();
   }
 
   public static final class FinallyPathWrapper {
@@ -577,6 +579,24 @@ public class FlattenStatementsHelper {
       this.sourceid = sourceid;
       this.statid = statid;
       this.edgetype = edgetype;
+    }
+  }
+
+  private static class DestNodePair {
+    private final DirectNode direct;
+    private final DirectNode cont;
+    
+    DestNodePair(DirectNode direct, DirectNode cont) {
+      this.direct = direct;
+      this.cont = cont;
+    }
+
+    public DirectNode getDirect() {
+      return direct;
+    }
+
+    public DirectNode getContinue() {
+      return cont;
     }
   }
 }

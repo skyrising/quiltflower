@@ -468,7 +468,7 @@ public class SSAConstructorSparseEx {
           map = new SFormsFastMapDirect();
           setCurrentVar(map, varindex, version);
 
-          extraVarVersions.put(dgraph.nodes.getWithKey(flatthelper.getMapDestinationNodes().get(stat.getStats().get(i).id)[0]).id, map);
+          extraVarVersions.put(flatthelper.getDirectDestinationNode(stat.getStats().get(i).id).id, map);
         }
     }
 

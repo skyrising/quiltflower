@@ -250,7 +250,7 @@ public class ExprProcessor implements CodeConstants {
 
     if (lst != null) {
       for (int i = 1; i < stat.getStats().size(); i++) {
-        map.put(flatthelper.getMapDestinationNodes().get(stat.getStats().get(i).id)[0], lst.get(i - 1));
+        map.put(flatthelper.getDirectDestinationNode(stat.getStats().get(i).id).id, lst.get(i - 1));
       }
     }
 
