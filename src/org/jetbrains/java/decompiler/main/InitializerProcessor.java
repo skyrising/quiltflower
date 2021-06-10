@@ -23,7 +23,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -160,7 +160,7 @@ public final class InitializerProcessor {
     Statement firstData = Statements.findFirstData(root);
     if (firstData != null) {
       boolean inlineInitializers = cl.hasModifier(CodeConstants.ACC_INTERFACE) || cl.hasModifier(CodeConstants.ACC_ENUM);
-      List<AssignmentExprent> exprentsToRemove = new LinkedList<>();//when we loop back through the list, stores ones we need to remove outside iterator loop
+      List<AssignmentExprent> exprentsToRemove = new ArrayList<>();//when we loop back through the list, stores ones we need to remove outside iterator loop
       Map<Integer, AssignmentExprent> nonFieldAssigns = new HashMap<>();
       Iterator<Exprent> itr = firstData.getExprents().iterator();
       while (itr.hasNext()) {

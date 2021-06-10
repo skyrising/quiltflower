@@ -281,7 +281,7 @@ public class VarDefinitionHelper {
 
   private Statement findFirstBlock(Statement stat, Integer varindex) {
 
-    LinkedList<Statement> stack = new LinkedList<>();
+    ArrayList<Statement> stack = new ArrayList<>();
     stack.add(stat);
 
     while (!stack.isEmpty()) {

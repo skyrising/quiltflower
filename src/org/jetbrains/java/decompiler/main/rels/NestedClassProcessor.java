@@ -947,7 +947,7 @@ public class NestedClassProcessor {
   }
 
   private static Statement findFirstBlock(Statement stat, Set<Statement> setStats) {
-    LinkedList<Statement> stack = new LinkedList<>();
+    ArrayList<Statement> stack = new ArrayList<>();
     stack.add(stat);
 
     while (!stack.isEmpty()) {

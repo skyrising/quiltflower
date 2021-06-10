@@ -15,7 +15,7 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
 import java.util.jar.JarFile;
@@ -156,7 +156,7 @@ public class ContextUnit {
           }
         }
 
-        final List<Future<?>> futures = new LinkedList<>();
+        final List<Future<?>> futures = new ArrayList<>();
         final ExecutorService decompileExecutor = Executors.newFixedThreadPool(Integer.parseInt((String) DecompilerContext.getProperty(IFernflowerPreferences.THREADS)));
         final DecompilerContext rootContext = DecompilerContext.getCurrentContext();
 

@@ -8,6 +8,7 @@ import org.jetbrains.java.decompiler.util.VBStyleCollection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -30,7 +31,7 @@ public class DirectGraph {
   public final HashMap<String, String> mapFinallyMonitorExceptionPathExits = new HashMap<>();
 
   public void sortReversePostOrder() {
-    LinkedList<DirectNode> res = new LinkedList<>();
+    ArrayList<DirectNode> res = new ArrayList<>();
     addToReversePostOrderListIterative(first, res);
 
     nodes.clear();

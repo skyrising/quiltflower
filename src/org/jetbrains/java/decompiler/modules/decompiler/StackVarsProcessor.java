@@ -546,7 +546,7 @@ public class StackVarsProcessor {
     stack.add(varnode);
 
     while (!stack.isEmpty()) {
-      VarVersionNode nd = stack.remove(0);
+      VarVersionNode nd = stack.removeFirst();
       setVisited.add(nd);
 
       if (nd != varnode && (nd.flags & VarVersionNode.FLAG_PHANTOM_FINEXIT) == 0) {

@@ -39,7 +39,7 @@ public class VarVersionsGraph {
         return true;
       }
 
-      List<VarVersionNode> lstNodes = new LinkedList<>();
+      List<VarVersionNode> lstNodes = new ArrayList<>();
       lstNodes.add(node);
 
       while (!lstNodes.isEmpty()) {
@@ -92,11 +92,11 @@ public class VarVersionsGraph {
   }
 
   private static List<VarVersionNode> getReversedPostOrder(Collection<VarVersionNode> roots) {
-    List<VarVersionNode> lst = new LinkedList<>();
+    List<VarVersionNode> lst = new ArrayList<>();
     Set<VarVersionNode> setVisited = new HashSet<>();
 
     for (VarVersionNode root : roots) {
-      List<VarVersionNode> lstTemp = new LinkedList<>();
+      List<VarVersionNode> lstTemp = new ArrayList<>();
       addToReversePostOrderListIterative(root, lstTemp, setVisited);
       lst.addAll(lstTemp);
     }

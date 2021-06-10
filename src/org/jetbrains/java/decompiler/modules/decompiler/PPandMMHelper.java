@@ -14,11 +14,7 @@ import org.jetbrains.java.decompiler.modules.decompiler.vars.VarProcessor;
 import org.jetbrains.java.decompiler.modules.decompiler.vars.VarVersionPair;
 import org.jetbrains.java.decompiler.struct.gen.VarType;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class PPandMMHelper {
 

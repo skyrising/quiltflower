@@ -244,7 +244,7 @@ public class TextBuffer {
     if (srcLines.size() < 2 || srcLines.size() <= requiredLineNumber) {
       return srcLines;
     }
-    List<String> res = new LinkedList<>(srcLines);
+    List<String> res = new ArrayList<>(srcLines);
     // first join lines with a single { or }
     for (int i = res.size()-1; i > 0 ; i--) {
       String s = res.get(i);

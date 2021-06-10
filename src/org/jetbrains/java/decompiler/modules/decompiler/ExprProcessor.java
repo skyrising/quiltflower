@@ -208,7 +208,7 @@ public class ExprProcessor implements CodeConstants {
   }
 
   // FIXME: Ugly code, to be rewritten. A tuple class is needed.
-  private static String buildEntryPointKey(LinkedList<String> entrypoints) {
+  private static String buildEntryPointKey(List<String> entrypoints) {
     if (entrypoints.isEmpty()) {
       return null;
     }
@@ -671,7 +671,7 @@ public class ExprProcessor implements CodeConstants {
 
     int base = VarExprent.STACK_BASE + stack.size();
 
-    LinkedList<VarExprent> lst = new LinkedList<>();
+    ArrayList<VarExprent> lst = new ArrayList<>();
 
     for (int i = -1; i >= offset; i--) {
       Exprent varex = stack.pop();

@@ -417,7 +417,7 @@ public class FinallyProcessor {
   }
 
   private static Set<BasicBlock> getAllBasicBlocks(Statement stat) {
-    List<Statement> lst = new LinkedList<>();
+    List<Statement> lst = new ArrayList<>();
     lst.add(stat);
 
     int index = 0;
@@ -572,7 +572,7 @@ public class FinallyProcessor {
       }
     }
 
-    List<BlockStackEntry> stack = new LinkedList<>();
+    List<BlockStackEntry> stack = new ArrayList<>();
 
     Set<BasicBlock> setSample = new HashSet<>();
 

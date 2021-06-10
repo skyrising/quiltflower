@@ -198,7 +198,7 @@ public final class DeadCodeHelper {
       return true;
     }
 
-    LinkedList<BasicBlock> lstNodes = new LinkedList<>();
+    ArrayList<BasicBlock> lstNodes = new ArrayList<>();
     lstNodes.add(block);
 
     while (!lstNodes.isEmpty()) {

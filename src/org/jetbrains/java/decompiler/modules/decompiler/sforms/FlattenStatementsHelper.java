@@ -114,7 +114,7 @@ public class FlattenStatementsHelper {
     mapDestinationNodes.put(stat.id, new DestNodePair(firstnd, null));
     graph.nodes.putWithKey(firstnd, firstnd.id);
 
-    LinkedList<StatementStackEntry> lst = new LinkedList<>();
+    ArrayList<StatementStackEntry> lst = new ArrayList<>();
 
     for (Statement st : stat.getStats()) {
       listEdges.add(new Edge(firstnd.id, st.id, StatEdge.TYPE_REGULAR));

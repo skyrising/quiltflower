@@ -499,7 +499,7 @@ public class ControlFlowGraph implements CodeConstants {
 
     Set<BasicBlock> blocks = new HashSet<>();
 
-    List<BasicBlock> lstNodes = new LinkedList<>();
+    List<BasicBlock> lstNodes = new ArrayList<>();
     lstNodes.add(jsr);
 
     BasicBlock dom = jsr.getSuccs().get(0);
@@ -561,7 +561,7 @@ public class ControlFlowGraph implements CodeConstants {
 
   private void splitJsrRange(BasicBlock jsr, BasicBlock ret, Set<BasicBlock> common_blocks) {
 
-    List<BasicBlock> lstNodes = new LinkedList<>();
+    List<BasicBlock> lstNodes = new ArrayList<>();
     Map<Integer, BasicBlock> mapNewNodes = new HashMap<>();
 
     lstNodes.add(jsr);
@@ -740,7 +740,7 @@ public class ControlFlowGraph implements CodeConstants {
 
   public List<BasicBlock> getReversePostOrder() {
 
-    List<BasicBlock> res = new LinkedList<>();
+    List<BasicBlock> res = new ArrayList<>();
     addToReversePostOrderListIterative(first, res);
 
     return res;
