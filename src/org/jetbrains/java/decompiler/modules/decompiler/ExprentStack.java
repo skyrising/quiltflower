@@ -11,13 +11,6 @@ public class ExprentStack extends ListStack<Exprent> {
 
   public ExprentStack(ListStack<Exprent> list) {
     super(list);
-    pointer = list.getPointer();
-  }
-
-  @Override
-  public Exprent pop() {
-
-    return this.remove(--pointer);
   }
 
   @Override
