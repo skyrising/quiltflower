@@ -29,6 +29,10 @@ public final class BytecodeVersion implements Comparable<BytecodeVersion> {
     return major >= MAJOR_9;
   }
 
+  public boolean hasSealedClasses() {
+    return major >= MAJOR_17 || (major >= MAJOR_15 && minor == PREVIEW);
+  }
+
   @Override
   public int compareTo(BytecodeVersion o) {
     int cmp = Integer.compare(major, o.major);
@@ -91,4 +95,7 @@ public final class BytecodeVersion implements Comparable<BytecodeVersion> {
   public static final int MAJOR_16 = 60;
   public static final int VERSION_16 = MAJOR_16 << 16;
   public static final int VERSION_16_PREVIEW = VERSION_16 | PREVIEW;
+  public static final int MAJOR_17 = 61;
+  public static final int VERSION_17 = MAJOR_17 << 16;
+  public static final int VERSION_17_PREVIEW = VERSION_17 | PREVIEW;
 }
